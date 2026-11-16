@@ -1,0 +1,1237 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Редактор скинов Minecraft</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=Press+Start+2P&display=swap">
+<style>
+/* Раскладка: мастерская. На компьютере слева холст 64×64 с инструментами, справа 3D-вид и файл.
+   На телефоне одна колонка и три вкладки: Рисунок, 3D-вид, Файл. */
+:root {
+  --bg: #dfe3da;
+  --panel: #eef0e8;
+  --ink: #1d2a20;
+  --muted: #566559;
+  --line: #aeb8a8;
+  --accent: #2f7d24;
+  --accent-ink: #ffffff;
+  --btn: #f7f8f3;
+  --btn-shade: #c9d0c3;
+  --chk1: #cfd3c9;
+  --chk2: #bcc1b4;
+  --grid: rgba(20, 30, 20, 0.13);
+  --grid-strong: rgba(20, 30, 20, 0.34);
+  --stage-a: #bcd2e0;
+  --stage-b: #dfe8d2;
+  --font-display: 'Press Start 2P', ui-monospace, monospace;
+  --font-body: 'Golos Text', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #171d18;
+    --panel: #212922;
+    --ink: #e7ede3;
+    --muted: #9eac9f;
+    --line: #3b473c;
+    --accent: #7ad65a;
+    --accent-ink: #0e1a0a;
+    --btn: #2b352c;
+    --btn-shade: #1a211b;
+    --chk1: #2e362f;
+    --chk2: #252c26;
+    --grid: rgba(255, 255, 255, 0.10);
+    --grid-strong: rgba(255, 255, 255, 0.28);
+    --stage-a: #1d2a35;
+    --stage-b: #1c261d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #171d18;
+  --panel: #212922;
+  --ink: #e7ede3;
+  --muted: #9eac9f;
+  --line: #3b473c;
+  --accent: #7ad65a;
+  --accent-ink: #0e1a0a;
+  --btn: #2b352c;
+  --btn-shade: #1a211b;
+  --chk1: #2e362f;
+  --chk2: #252c26;
+  --grid: rgba(255, 255, 255, 0.10);
+  --grid-strong: rgba(255, 255, 255, 0.28);
+  --stage-a: #1d2a35;
+  --stage-b: #1c261d;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.45 var(--font-body);
+  padding-block: 16px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+.app { width: 100%; max-width: 1180px; margin-inline: auto; display: flex; flex-direction: column; gap: 14px; }
+
+/* Шапка */
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.logo { flex: none; border: 2px solid var(--line); image-rendering: pixelated; }
+.brand h1 { font: 400 12px/1.5 var(--font-display); margin: 0; text-wrap: balance; }
+.brand small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+.vswitch { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.vswitch > span { color: var(--muted); font-size: 12px; }
+
+.seg { display: inline-flex; border: 2px solid var(--line); background: var(--btn); border-radius: 999px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 7px 12px; min-height: 38px; }
+.seg button + button { border-left: 2px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+/* Устройство */
+.device { width: 100%; display: flex; flex-direction: column; gap: 14px; }
+.tabs { display: none; }
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 16px; align-items: start; }
+.col-right { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+.panel { background: var(--panel); border: 2px solid var(--line); padding: 14px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.panel h2 { font: 400 10px/1.5 var(--font-display); margin: 0; letter-spacing: 0.04em; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.group-label { font-size: 12px; color: var(--muted); }
+
+/* Кнопки */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 38px; padding: 6px 18px;
+  background: var(--btn); border: 2px solid var(--line); border-radius: 999px;
+  box-shadow: inset 0 -3px 0 var(--btn-shade);
+}
+.btn:hover { border-color: var(--muted); }
+.btn:active { transform: translateY(1px); }
+.btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.22); font-weight: 600; }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.22); }
+.btn.armed { border-color: #d14b3a; color: #d14b3a; }
+.btn svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: square; stroke-linejoin: miter; }
+.check { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Холст */
+.drawgrid { display: grid; grid-template-columns: minmax(0, 640px) minmax(180px, 1fr); gap: 16px; align-items: start; }
+.canvasbox { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.scroller { width: 100%; max-width: 640px; overflow: auto; border: 2px solid var(--line); background: var(--chk1); }
+.board {
+  position: relative; width: calc(var(--zoom, 1) * 100%); aspect-ratio: 1;
+  background: conic-gradient(var(--chk1) 25%, var(--chk2) 0 50%, var(--chk1) 0 75%, var(--chk2) 0) 0 0 / calc(100% / 16) calc(100% / 16);
+}
+.board canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; display: block; }
+#skin { touch-action: none; cursor: crosshair; }
+.board[data-tool="hand"] #skin { cursor: grab; }
+.gridlay {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid) 1px, transparent 1px),
+    linear-gradient(to right, var(--grid-strong) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-strong) 1px, transparent 1px);
+  background-size: calc(100% / 64) calc(100% / 64), calc(100% / 64) calc(100% / 64), calc(100% / 8) calc(100% / 8), calc(100% / 8) calc(100% / 8);
+}
+.board[data-grid="off"] .gridlay { display: none; }
+.cursor { position: absolute; pointer-events: none; border: 1px solid #fff; mix-blend-mode: difference; display: none; }
+.status { color: var(--muted); font-size: 12px; min-height: 18px; font-variant-numeric: tabular-nums; }
+
+.colors { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.colorrow { display: flex; align-items: center; gap: 10px; }
+.colorrow .cl { width: 48px; flex: none; }
+.colorrow input[type="color"] { width: 52px; height: 44px; padding: 0; border: 2px solid var(--line); background: var(--btn); flex: none; }
+.colorrow input[type="text"] { width: 100%; min-width: 0; min-height: 38px; padding: 6px 10px; border: 2px solid var(--line); background: var(--btn); font-family: ui-monospace, monospace; text-transform: lowercase; }
+.palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(30px, 1fr)); gap: 5px; }
+.sw { aspect-ratio: 1; min-height: 28px; border: 2px solid var(--line); padding: 0; border-radius: 50%; }
+.colorrow input[type="color"] { border-radius: 50%; width: 46px; height: 46px; padding: 3px; overflow: hidden; }
+.colorrow input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.colorrow input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 50%; }
+.colorrow input[type="color"]::-moz-color-swatch { border: 0; border-radius: 50%; }
+.colorrow input[type="text"], .namefield input { border-radius: 999px; padding-inline: 16px; }
+.sw[aria-pressed="true"] { outline: 3px solid var(--ink); outline-offset: 1px; }
+.hint { color: var(--muted); font-size: 12.5px; max-width: 62ch; margin: 0; }
+
+/* 3D-вид */
+.stage {
+  --s: 9px; position: relative; height: calc(var(--s) * 40); min-height: 300px;
+  perspective: 900px; overflow: hidden; touch-action: none; cursor: grab; user-select: none;
+  background: linear-gradient(var(--stage-a), var(--stage-b)); border: 2px solid var(--line);
+}
+.stage:active { cursor: grabbing; }
+.floor { position: absolute; left: 50%; top: calc(52% + var(--s) * 16); width: calc(var(--s) * 18); height: calc(var(--s) * 3); transform: translate(-50%, -50%); background: radial-gradient(closest-side, rgba(0, 0, 0, 0.34), transparent); }
+.model { position: absolute; left: 50%; top: 52%; width: 0; height: 0; transform-style: preserve-3d; }
+.part, .box { position: absolute; transform-style: preserve-3d; }
+.face { position: absolute; background-image: var(--skin); background-repeat: no-repeat; image-rendering: pixelated; backface-visibility: hidden; }
+.model[data-layer2="off"] .overlay { display: none; }
+.stage[data-mode="draw"] { cursor: crosshair; }
+.model[data-target="base"] .overlay { pointer-events: none; }
+.model[data-target="over"] .box:not(.overlay) { pointer-events: none; }
+@keyframes swa { 0%, 100% { transform: rotateX(30deg); } 50% { transform: rotateX(-30deg); } }
+@keyframes swb { 0%, 100% { transform: rotateX(-30deg); } 50% { transform: rotateX(30deg); } }
+.model[data-walk="on"] .limb-a { animation: swa 1.1s ease-in-out infinite; }
+.model[data-walk="on"] .limb-b { animation: swb 1.1s ease-in-out infinite; }
+
+.fileactions { display: flex; flex-wrap: wrap; gap: 8px; }
+.fileactions .btn { flex: 1 1 150px; }
+.namefield { display: flex; flex-direction: column; gap: 4px; }
+.namefield input { min-height: 38px; padding: 6px 10px; border: 2px solid var(--line); background: var(--btn); width: 100%; }
+.fallback { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.fallback img { width: 192px; max-width: 100%; image-rendering: pixelated; border: 2px solid var(--line); background: var(--chk1); }
+
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-size: 13px; max-width: calc(100% - 32px); z-index: 20; }
+
+/* Узкий экран при версии «Компьютер»: колонки встают друг под друга */
+@media (max-width: 860px) {
+  .workspace { grid-template-columns: minmax(0, 1fr); }
+  .stage { --s: 7px; }
+}
+@media (max-width: 1020px) {
+  .drawgrid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Версия «Телефон» */
+[data-view="phone"] .device { max-width: 430px; margin-inline: auto; }
+@media (min-width: 560px) {
+  [data-view="phone"] .device { border: 2px solid var(--line); border-radius: 22px; padding: 14px; background: color-mix(in srgb, var(--panel) 40%, var(--bg)); }
+}
+[data-view="phone"] .tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 2px solid var(--line); background: var(--btn); border-radius: 999px; overflow: hidden; }
+[data-view="phone"] .tabs button { border: 0; background: transparent; min-height: 46px; padding: 6px; }
+[data-view="phone"] .tabs button + button { border-left: 2px solid var(--line); }
+[data-view="phone"] .tabs button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+[data-view="phone"] .workspace { display: block; }
+[data-view="phone"] .col-right { display: block; }
+[data-view="phone"] .panel { display: none; padding: 12px; }
+[data-view="phone"][data-tab="draw"] #pDraw,
+[data-view="phone"][data-tab="view"] #pView,
+[data-view="phone"][data-tab="file"] #pFile { display: flex; }
+[data-view="phone"] .drawgrid { grid-template-columns: minmax(0, 1fr); }
+[data-view="phone"] .stage { --s: 7px; }
+[data-view="phone"] .btn { min-height: 44px; }
+[data-view="phone"] .tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+[data-view="phone"] .tools .btn { flex-direction: column; gap: 3px; padding: 8px 2px; font-size: 12px; border-radius: 22px; }
+[data-view="phone"] .seg button { min-height: 44px; }
+[data-view="phone"] .check { min-height: 42px; }
+[data-view="phone"] .sw { min-height: 34px; }
+
+/* Галерея */
+.gal-block { display: flex; flex-direction: column; gap: 10px; }
+.gal { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; }
+.gal-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; font-size: 11.5px; color: var(--muted); }
+.gal-pick { width: 100%; aspect-ratio: 1; padding: 6px; background: var(--chk1); border: 2px solid var(--line); border-radius: 12px; cursor: pointer; }
+.gal-pick:hover { border-color: var(--accent); }
+.gal-pick img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.gal-item span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gal-del { position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; padding: 0; border-radius: 50%; border: 2px solid var(--line); background: var(--btn); color: #d14b3a; font-size: 16px; line-height: 1; }
+
+/* Напоминания */
+.rem { display: flex; flex-direction: column; gap: 10px; border-top: 2px dashed var(--line); padding-top: 14px; }
+.rem .row { justify-content: space-between; }
+#remTime { min-height: 38px; padding: 6px 12px; border: 2px solid var(--line); background: var(--btn); border-radius: 999px; }
+</style>
+
+<div class="app" id="app" data-view="desktop" data-tab="draw">
+  <header class="top">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 8 8" width="40" height="40" shape-rendering="crispEdges" aria-hidden="true"><rect width="8" height="8" fill="#c68863"/><rect width="8" height="2" fill="#3b2314"/><rect y="2" width="1" height="1" fill="#3b2314"/><rect x="7" y="2" width="1" height="1" fill="#3b2314"/><rect x="1" y="4" width="2" height="1" fill="#fff"/><rect x="2" y="4" width="1" height="1" fill="#3b4bd6"/><rect x="5" y="4" width="2" height="1" fill="#fff"/><rect x="5" y="4" width="1" height="1" fill="#3b4bd6"/><rect x="3" y="6" width="2" height="1" fill="#8a4b38"/></svg>
+      <div>
+        <h1>Редактор скинов</h1>
+        <small>Minecraft, текстура 64×64</small>
+      </div>
+    </div>
+    <div class="vswitch">
+      <span id="vlabel">Версия</span>
+      <div class="seg" role="group" aria-labelledby="vlabel">
+        <button type="button" data-v="desktop" aria-pressed="true">Компьютер</button>
+        <button type="button" data-v="phone" aria-pressed="false">Телефон</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="device">
+    <nav class="tabs" aria-label="Разделы">
+      <button type="button" data-tab="draw" aria-pressed="true">Рисунок</button>
+      <button type="button" data-tab="view" aria-pressed="false">3D-вид</button>
+      <button type="button" data-tab="file" aria-pressed="false">Файл</button>
+    </nav>
+
+    <main class="workspace">
+      <section class="panel" id="pDraw" aria-label="Рисунок">
+        <h2>Рисунок</h2>
+        <div class="tools" role="group" aria-label="Инструменты">
+          <button type="button" class="btn" data-tool="pencil" aria-pressed="true" title="Карандаш (B)"><svg viewBox="0 0 16 16"><path d="M2.5 13.5l.8-3.4 7-7 2.6 2.6-7 7z"/></svg>Карандаш</button>
+          <button type="button" class="btn" data-tool="eraser" aria-pressed="false" title="Ластик (E)"><svg viewBox="0 0 16 16"><path d="M2 10.5l6.5-7 5 4.5-4.2 5H5z"/><path d="M5 13.5h9"/></svg>Ластик</button>
+          <button type="button" class="btn" data-tool="fill" aria-pressed="false" title="Заливка (G)"><svg viewBox="0 0 16 16"><path d="M2.5 8l5-5 6 6-5 5z"/><path d="M14 11.5c1 1.4 1 2.4 0 3.2"/></svg>Заливка</button>
+          <button type="button" class="btn" data-tool="gradient" aria-pressed="false" title="Градиент (D): протяните по грани"><svg viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10"/><path d="M5 3v10M8 3v10M11 3v10"/></svg>Градиент</button>
+          <button type="button" class="btn" data-tool="pick" aria-pressed="false" title="Пипетка (I)"><svg viewBox="0 0 16 16"><path d="M10.5 2l3.5 3.5-2 1-1-1-4.5 4.5-1 2.5-2 .8.8-2 2.5-1 4.5-4.5-1-1z"/></svg>Пипетка</button>
+          <button type="button" class="btn" data-tool="hand" aria-pressed="false" title="Рука: двигать холст при увеличении"><svg viewBox="0 0 16 16"><path d="M8 1.5v13M1.5 8h13M8 1.5L6 3.5M8 1.5l2 2M8 14.5l-2-2M8 14.5l2-2M1.5 8l2-2M1.5 8l2 2M14.5 8l-2-2M14.5 8l-2 2"/></svg>Рука</button>
+        </div>
+        <div class="toolbar">
+          <div class="row">
+            <span class="group-label" id="szl">Кисть</span>
+            <div class="seg" role="group" aria-labelledby="szl">
+              <button type="button" data-size="1" aria-pressed="true">1</button>
+              <button type="button" data-size="2" aria-pressed="false">2</button>
+              <button type="button" data-size="3" aria-pressed="false">3</button>
+            </div>
+          </div>
+          <div class="row">
+            <span class="group-label" id="zml">Масштаб</span>
+            <div class="seg" role="group" aria-labelledby="zml">
+              <button type="button" data-zoom="1" aria-pressed="true">1×</button>
+              <button type="button" data-zoom="2" aria-pressed="false">2×</button>
+              <button type="button" data-zoom="3" aria-pressed="false">3×</button>
+            </div>
+          </div>
+          <div class="row">
+            <button type="button" class="btn" id="undoBtn" disabled title="Отменить (Ctrl+Z)"><svg viewBox="0 0 16 16"><path d="M5 6h5a3.5 3.5 0 010 7H6M5 6l2.5-2.5M5 6l2.5 2.5"/></svg>Отменить</button>
+            <button type="button" class="btn" id="redoBtn" disabled title="Повторить (Ctrl+Y)"><svg viewBox="0 0 16 16"><path d="M11 6H6a3.5 3.5 0 000 7h4M11 6L8.5 3.5M11 6L8.5 8.5"/></svg>Повторить</button>
+          </div>
+        </div>
+        <div class="drawgrid">
+          <div class="canvasbox">
+            <div class="scroller" id="scroller">
+              <div class="board" id="board" data-grid="on" data-tool="pencil">
+                <canvas id="skin" width="64" height="64" aria-label="Текстура скина 64 на 64 пикселя"></canvas>
+                <div class="gridlay"></div>
+                <canvas id="guides" width="768" height="768" style="pointer-events:none" aria-hidden="true"></canvas>
+                <div class="cursor" id="cursor"></div>
+              </div>
+            </div>
+            <div class="status" id="status" aria-live="off">Наведите на холст, чтобы увидеть часть скина.</div>
+            <div class="row">
+              <label class="check"><input type="checkbox" id="gridChk" checked> Сетка</label>
+              <label class="check"><input type="checkbox" id="guideChk" checked> Разметка частей</label>
+            </div>
+          </div>
+          <div class="colors">
+            <div class="group-label">Цвет</div>
+            <div class="colorrow">
+              <span class="group-label cl">Цвет 1</span>
+              <input type="color" data-c="1" value="#2f7d24" aria-label="Цвет 1">
+              <input type="text" data-c="1" value="#2f7d24" maxlength="7" spellcheck="false" aria-label="Цвет 1 в формате HEX">
+            </div>
+            <div class="colorrow">
+              <span class="group-label cl">Цвет 2</span>
+              <input type="color" data-c="2" value="#ffffff" aria-label="Цвет 2 для градиента">
+              <input type="text" data-c="2" value="#ffffff" maxlength="7" spellcheck="false" aria-label="Цвет 2 в формате HEX">
+            </div>
+            <div class="group-label">Палитра</div>
+            <div class="palette"></div>
+            <p class="hint">Заливка закрашивает только одну грань. Ластик делает пиксель прозрачным, это нужно для внешнего слоя.</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="col-right">
+        <section class="panel" id="pView" aria-label="3D-вид">
+          <h2>3D-вид</h2>
+          <div class="stage" id="stage" data-mode="draw" aria-label="Модель персонажа. Рисуйте на ней или тяните пустое место, чтобы повернуть.">
+            <div class="floor"></div>
+            <div class="model" id="model" data-layer2="on" data-walk="off" data-target="base"></div>
+          </div>
+          <div class="tools" role="group" aria-label="Инструменты для модели">
+            <button type="button" class="btn" data-tool="pencil" aria-pressed="true"><svg viewBox="0 0 16 16"><path d="M2.5 13.5l.8-3.4 7-7 2.6 2.6-7 7z"/></svg>Карандаш</button>
+            <button type="button" class="btn" data-tool="eraser" aria-pressed="false"><svg viewBox="0 0 16 16"><path d="M2 10.5l6.5-7 5 4.5-4.2 5H5z"/><path d="M5 13.5h9"/></svg>Резинка</button>
+            <button type="button" class="btn" data-tool="fill" aria-pressed="false"><svg viewBox="0 0 16 16"><path d="M2.5 8l5-5 6 6-5 5z"/><path d="M14 11.5c1 1.4 1 2.4 0 3.2"/></svg>Заливка</button>
+            <button type="button" class="btn" data-tool="gradient" aria-pressed="false"><svg viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10"/><path d="M5 3v10M8 3v10M11 3v10"/></svg>Градиент</button>
+            <button type="button" class="btn" data-tool="pick" aria-pressed="false"><svg viewBox="0 0 16 16"><path d="M10.5 2l3.5 3.5-2 1-1-1-4.5 4.5-1 2.5-2 .8.8-2 2.5-1 4.5-4.5-1-1z"/></svg>Пипетка</button>
+          </div>
+          <div class="row">
+            <span class="group-label" id="sz3">Кисть</span>
+            <div class="seg" role="group" aria-labelledby="sz3">
+              <button type="button" data-size="1" aria-pressed="true">1</button>
+              <button type="button" data-size="2" aria-pressed="false">2</button>
+              <button type="button" data-size="3" aria-pressed="false">3</button>
+            </div>
+          </div>
+          <div class="colors">
+            <div class="colorrow">
+              <span class="group-label cl">Цвет 1</span>
+              <input type="color" data-c="1" value="#2f7d24" aria-label="Цвет 1">
+              <input type="text" data-c="1" value="#2f7d24" maxlength="7" spellcheck="false" aria-label="Цвет 1 в формате HEX">
+            </div>
+            <div class="colorrow">
+              <span class="group-label cl">Цвет 2</span>
+              <input type="color" data-c="2" value="#ffffff" aria-label="Цвет 2 для градиента">
+              <input type="text" data-c="2" value="#ffffff" maxlength="7" spellcheck="false" aria-label="Цвет 2 в формате HEX">
+            </div>
+            <div class="palette"></div>
+          </div>
+          <div class="row">
+            <span class="group-label" id="drl">Касание модели</span>
+            <div class="seg" role="group" aria-labelledby="drl">
+              <button type="button" data-mode="draw" aria-pressed="true">Рисовать</button>
+              <button type="button" data-mode="rotate" aria-pressed="false">Вращать</button>
+            </div>
+          </div>
+          <div class="row">
+            <span class="group-label" id="tgl">Слой</span>
+            <div class="seg" role="group" aria-labelledby="tgl">
+              <button type="button" data-target="base" aria-pressed="true">Основной</button>
+              <button type="button" data-target="over" aria-pressed="false">Внешний</button>
+            </div>
+          </div>
+          <div class="row">
+            <span class="group-label" id="mdl">Модель</span>
+            <div class="seg" role="group" aria-labelledby="mdl">
+              <button type="button" data-model="steve" aria-pressed="true">Стив, руки 4 px</button>
+              <button type="button" data-model="alex" aria-pressed="false">Алекс, руки 3 px</button>
+            </div>
+          </div>
+          <div class="row">
+            <label class="check"><input type="checkbox" id="layerChk" checked> Внешний слой</label>
+            <label class="check"><input type="checkbox" id="walkChk"> Ходьба</label>
+            <label class="check"><input type="checkbox" id="spinChk"> Вращение</label>
+          </div>
+          <div class="row"><button type="button" class="btn" id="resetView">Сбросить вид</button></div>
+          <p class="hint">Рисуйте на модели выбранным инструментом: карандашом, ластиком, заливкой или пипеткой. Чтобы повернуть модель, тяните за пустое место рядом с ней.</p>
+        </section>
+
+        <section class="panel" id="pFile" aria-label="Файл">
+          <h2>Файл</h2>
+          <div class="namefield">
+            <label class="group-label" for="nameInput">Имя файла</label>
+            <input type="text" id="nameInput" value="skin" maxlength="40" spellcheck="false">
+          </div>
+          <div class="fileactions">
+            <button type="button" class="btn primary" id="dlBtn">Скачать PNG</button>
+            <label class="btn" for="openInput" style="cursor:pointer">Открыть PNG</label>
+            <input type="file" id="openInput" accept="image/png" hidden>
+          </div>
+          <div class="fileactions">
+            <button type="button" class="btn" id="newBtn">Новый скин</button>
+            <button type="button" class="btn" id="clearBtn">Очистить холст</button>
+          </div>
+          <div class="fallback" id="fallback" hidden>
+            <img id="fallbackImg" alt="Готовый скин" width="192" height="192">
+            <p class="hint">Скачивание недоступно в этом окне. Нажмите на картинку правой кнопкой мыши (на телефоне удерживайте палец) и сохраните её.</p>
+          </div>
+          <div class="gal-block">
+            <div class="fileactions">
+              <button type="button" class="btn" id="galSaveBtn">Сохранить в галерею</button>
+            </div>
+            <div class="group-label">Встроенные скины</div>
+            <div class="gal" id="galPresets"></div>
+            <div class="group-label">Мои скины</div>
+            <div class="gal" id="galSaved"></div>
+            <p class="hint" id="galEmpty">Пока пусто. Нажмите «Сохранить в галерею», чтобы добавить текущий скин.</p>
+          </div>
+          <p class="hint">Подойдёт PNG 64×64 или старый формат 64×32. Скин сохраняется в этом браузере автоматически. Положите готовый файл в папку skinpacks игры или загрузите на сайт Minecraft.</p>
+          <div class="rem">
+            <div class="group-label">Напоминания порисовать</div>
+            <label class="check"><input type="checkbox" id="remOn"> Напоминать каждый день</label>
+            <div class="row">
+              <label class="group-label" for="remTime">Время</label>
+              <input type="time" id="remTime" value="19:00">
+            </div>
+            <div class="namefield">
+              <label class="group-label" for="remText">Текст уведомления</label>
+              <input type="text" id="remText" maxlength="80" value="Время порисовать скин!" spellcheck="false">
+            </div>
+            <div class="fileactions">
+              <button type="button" class="btn" id="remTest">Проверить уведомление</button>
+            </div>
+            <p class="hint" id="remStatus"></p>
+            <p class="hint">На телефоне напоминания приходят даже когда приложение закрыто. В браузере они работают, пока открыта страница.</p>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+  var N = 64, GZ = 12;
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+  var app = $('#app'), skin = $('#skin'), sctx = skin.getContext('2d');
+  var guides = $('#guides'), gctx = guides.getContext('2d');
+  var board = $('#board'), scroller = $('#scroller'), cursorEl = $('#cursor'), statusEl = $('#status');
+  var model = $('#model'), stage = $('#stage');
+  var img = new ImageData(N, N), data = img.data;
+
+  var state = { mode: 'draw', tool: 'pencil', size: 1, color: '#2f7d24', rgb: [47, 125, 36], color2: '#ffffff', rgb2: [255, 255, 255], slim: false, rx: -12, ry: -32, spin: false, view: 'desktop', tab: 'draw' };
+  var undoStack = [], redoStack = [], grad = null;
+
+  /* ---------- хранилище ---------- */
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* без хранилища */ } }
+
+  /* ---------- уведомления ---------- */
+  var toastTimer = 0;
+  function toast(msg) {
+    var t = $('#toast');
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.hidden = true; }, 2600);
+  }
+
+  /* ---------- устройство текстуры скина ---------- */
+  function faces(u, v, w, h, d) {
+    return {
+      top: [u + d, v, w, d], bottom: [u + d + w, v, w, d],
+      right: [u, v + d, d, h], front: [u + d, v + d, w, h],
+      left: [u + d + w, v + d, d, h], back: [u + 2 * d + w, v + d, w, h]
+    };
+  }
+  var FACE_RU = { top: 'верх', bottom: 'низ', right: 'правая сторона', front: 'перед', left: 'левая сторона', back: 'зад' };
+
+  function partsFor(slim) {
+    var aw = slim ? 3 : 4, ax = 4 + aw / 2;
+    return [
+      { id: 'head', name: 'Голова', w: 8, h: 8, d: 8, b: [0, 0], o: [32, 0], inf: 1, cx: 0, cy: 4, limb: null, color: '#ff5a5f' },
+      { id: 'body', name: 'Тело', w: 8, h: 12, d: 4, b: [16, 16], o: [16, 32], inf: 0.5, cx: 0, cy: 14, limb: null, color: '#ffb020' },
+      { id: 'rarm', name: 'Пр.рука', w: aw, h: 12, d: 4, b: [40, 16], o: [40, 32], inf: 0.5, cx: -ax, cy: 14, limb: 'a', color: '#2dd4bf' },
+      { id: 'larm', name: 'Лев.рука', w: aw, h: 12, d: 4, b: [32, 48], o: [48, 48], inf: 0.5, cx: ax, cy: 14, limb: 'b', color: '#60a5fa' },
+      { id: 'rleg', name: 'Пр.нога', w: 4, h: 12, d: 4, b: [0, 16], o: [0, 32], inf: 0.5, cx: -2, cy: 26, limb: 'b', color: '#c084fc' },
+      { id: 'lleg', name: 'Лев.нога', w: 4, h: 12, d: 4, b: [16, 48], o: [0, 48], inf: 0.5, cx: 2, cy: 26, limb: 'a', color: '#f472b6' }
+    ];
+  }
+
+  var REGIONS = [];
+  function buildRegions() {
+    REGIONS = [];
+    partsFor(state.slim).forEach(function (p) {
+      [[p.b, false], [p.o, true]].forEach(function (pair) {
+        var f = faces(pair[0][0], pair[0][1], p.w, p.h, p.d);
+        Object.keys(f).forEach(function (k) {
+          var r = f[k];
+          REGIONS.push({ x: r[0], y: r[1], w: r[2], h: r[3], key: k, over: pair[1], part: p, label: p.name + (pair[1] ? ', внешний слой' : '') + ', ' + FACE_RU[k] });
+        });
+      });
+    });
+  }
+  function regionAt(x, y) {
+    for (var i = 0; i < REGIONS.length; i++) {
+      var r = REGIONS[i];
+      if (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h) return r;
+    }
+    return null;
+  }
+
+  /* ---------- разметка частей поверх холста ---------- */
+  function drawGuides() {
+    gctx.clearRect(0, 0, guides.width, guides.height);
+    if (!$('#guideChk').checked) return;
+    gctx.font = '600 9px "Golos Text", sans-serif';
+    gctx.textBaseline = 'top';
+    REGIONS.forEach(function (r) {
+      var x = r.x * GZ + 0.5, y = r.y * GZ + 0.5, w = r.w * GZ - 1, h = r.h * GZ - 1;
+      gctx.setLineDash(r.over ? [5, 4] : []);
+      gctx.strokeStyle = 'rgba(0,0,0,0.55)'; gctx.lineWidth = 3;
+      gctx.strokeRect(x, y, w, h);
+      gctx.strokeStyle = r.part.color; gctx.lineWidth = 1.5;
+      gctx.strokeRect(x, y, w, h);
+    });
+    gctx.setLineDash([]);
+    REGIONS.forEach(function (r) {
+      if (r.key !== 'front') return;
+      var t = r.part.name + (r.over ? ' 2' : '');
+      gctx.lineWidth = 3; gctx.strokeStyle = 'rgba(0,0,0,0.7)'; gctx.fillStyle = '#fff';
+      gctx.strokeText(t, r.x * GZ + 4, r.y * GZ + 4);
+      gctx.fillText(t, r.x * GZ + 4, r.y * GZ + 4);
+    });
+  }
+
+  /* ---------- рисование ---------- */
+  function hexToRgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+  function rgbToHex(r, g, b) { return '#' + [r, g, b].map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join(''); }
+
+  var modelQueued = false;
+  function render() {
+    sctx.putImageData(img, 0, 0);
+    if (!modelQueued) {
+      modelQueued = true;
+      requestAnimationFrame(function () { modelQueued = false; updateTexture(); });
+    }
+    scheduleSave();
+  }
+  function updateTexture() { model.style.setProperty('--skin', 'url(' + skin.toDataURL('image/png') + ')'); }
+
+  var saveTimer = 0;
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () { lsSet('mcskin:v1', skin.toDataURL('image/png')); }, 600);
+  }
+
+  function pushUndo() {
+    undoStack.push(new Uint8ClampedArray(data));
+    if (undoStack.length > 60) undoStack.shift();
+    redoStack.length = 0;
+    updateHistoryButtons();
+  }
+  function updateHistoryButtons() {
+    $('#undoBtn').disabled = !undoStack.length;
+    $('#redoBtn').disabled = !redoStack.length;
+  }
+  function undo() {
+    if (!undoStack.length) return;
+    redoStack.push(new Uint8ClampedArray(data));
+    data.set(undoStack.pop()); render(); updateHistoryButtons();
+  }
+  function redo() {
+    if (!redoStack.length) return;
+    undoStack.push(new Uint8ClampedArray(data));
+    data.set(redoStack.pop()); render(); updateHistoryButtons();
+  }
+
+  function stamp(x, y) {
+    var s = state.size, o = -Math.floor((s - 1) / 2), er = state.tool === 'eraser', c = state.rgb;
+    for (var j = 0; j < s; j++) {
+      for (var i = 0; i < s; i++) {
+        var px = x + o + i, py = y + o + j;
+        if (px < 0 || py < 0 || px >= N || py >= N) continue;
+        var k = (py * N + px) * 4;
+        if (er) { data[k] = data[k + 1] = data[k + 2] = data[k + 3] = 0; }
+        else { data[k] = c[0]; data[k + 1] = c[1]; data[k + 2] = c[2]; data[k + 3] = 255; }
+      }
+    }
+  }
+  function line(x0, y0, x1, y1) {
+    var dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, err = dx + dy;
+    for (;;) {
+      stamp(x0, y0);
+      if (x0 === x1 && y0 === y1) break;
+      var e2 = 2 * err;
+      if (e2 >= dy) { err += dy; x0 += sx; }
+      if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+  }
+  function floodFill(x, y) {
+    var reg = regionAt(x, y);
+    var minX = reg ? reg.x : 0, minY = reg ? reg.y : 0, maxX = reg ? reg.x + reg.w : N, maxY = reg ? reg.y + reg.h : N;
+    var k0 = (y * N + x) * 4, tr = data[k0], tg = data[k0 + 1], tb = data[k0 + 2], ta = data[k0 + 3], c = state.rgb;
+    if (ta === 255 && tr === c[0] && tg === c[1] && tb === c[2]) return false;
+    var stack = [[x, y]];
+    while (stack.length) {
+      var p = stack.pop(), px = p[0], py = p[1];
+      if (px < minX || py < minY || px >= maxX || py >= maxY) continue;
+      var k = (py * N + px) * 4;
+      if (data[k] !== tr || data[k + 1] !== tg || data[k + 2] !== tb || data[k + 3] !== ta) continue;
+      data[k] = c[0]; data[k + 1] = c[1]; data[k + 2] = c[2]; data[k + 3] = 255;
+      stack.push([px + 1, py], [px - 1, py], [px, py + 1], [px, py - 1]);
+    }
+    return true;
+  }
+
+  function texel(e) {
+    var r = skin.getBoundingClientRect();
+    var x = Math.floor((e.clientX - r.left) / r.width * N), y = Math.floor((e.clientY - r.top) / r.height * N);
+    return [Math.max(0, Math.min(N - 1, x)), Math.max(0, Math.min(N - 1, y))];
+  }
+  function showCursor(x, y, show) {
+    if (!show || state.tool === 'hand') { cursorEl.style.display = 'none'; return; }
+    var s = (state.tool === 'pencil' || state.tool === 'eraser') ? state.size : 1;
+    var o = (state.tool === 'pencil' || state.tool === 'eraser') ? -Math.floor((s - 1) / 2) : 0;
+    cursorEl.style.display = 'block';
+    cursorEl.style.left = ((x + o) / N * 100) + '%';
+    cursorEl.style.top = ((y + o) / N * 100) + '%';
+    cursorEl.style.width = (s / N * 100) + '%';
+    cursorEl.style.height = (s / N * 100) + '%';
+  }
+  function setStatus(x, y) {
+    var r = regionAt(x, y);
+    statusEl.textContent = 'x ' + x + ', y ' + y + (r ? ' · ' + r.label : ' · вне частей модели');
+  }
+
+  var drawing = false, last = null, panStart = null;
+  skin.addEventListener('pointerdown', function (e) {
+    if (e.button !== undefined && e.button > 0) return;
+    var t = texel(e);
+    skin.setPointerCapture(e.pointerId);
+    if (state.tool === 'hand') {
+      panStart = { x: e.clientX, y: e.clientY, sl: scroller.scrollLeft, st: scroller.scrollTop };
+      return;
+    }
+    if (state.tool === 'pick') { pickAt(t[0], t[1]); return; }
+    if (state.tool === 'gradient') { gradStart(t); return; }
+    if (state.tool === 'fill') {
+      pushUndo();
+      if (floodFill(t[0], t[1])) render(); else { undoStack.pop(); updateHistoryButtons(); }
+      return;
+    }
+    pushUndo();
+    drawing = true; last = t;
+    stamp(t[0], t[1]); render();
+  });
+  skin.addEventListener('pointermove', function (e) {
+    if (panStart) {
+      scroller.scrollLeft = panStart.sl - (e.clientX - panStart.x);
+      scroller.scrollTop = panStart.st - (e.clientY - panStart.y);
+      return;
+    }
+    var t = texel(e);
+    setStatus(t[0], t[1]);
+    showCursor(t[0], t[1], e.pointerType === 'mouse');
+    if (grad) { if (regionAt(t[0], t[1]) === grad.reg) gradApply(t); return; }
+    if (drawing) { line(last[0], last[1], t[0], t[1]); last = t; render(); }
+  });
+  function endStroke() { drawing = false; last = null; panStart = null; grad = null; }
+  skin.addEventListener('pointerup', endStroke);
+  skin.addEventListener('pointercancel', endStroke);
+  skin.addEventListener('pointerleave', function () { showCursor(0, 0, false); });
+
+  function pickAt(x, y) {
+    var k = (y * N + x) * 4;
+    if (data[k + 3] === 0) { toast('Этот пиксель прозрачный.'); return; }
+    setColor(rgbToHex(data[k], data[k + 1], data[k + 2]));
+    setTool('pencil');
+  }
+
+  /* ---------- цвет и инструменты ---------- */
+  var PALETTE = ['#000000', '#3b3b3b', '#7d7d7d', '#c8c8c8', '#ffffff', '#c68863', '#e0ac85', '#8a5a3c', '#5a3a22', '#3b2314',
+    '#d62f2f', '#ef7d2a', '#f4c430', '#8bd13a', '#2f7d24', '#1f5c4f', '#1fa6a0', '#4fc3e8', '#3a43a8', '#6a3fa0', '#b04fb8', '#e87ba8', '#7a2430', '#4a4a52'];
+  $$('.palette').forEach(function (palEl) {
+  PALETTE.forEach(function (c) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'sw'; b.style.background = c; b.dataset.c = c; b.title = c;
+    b.setAttribute('aria-label', 'Цвет ' + c); b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', function () { setColor(c); if (state.tool === 'eraser' || state.tool === 'pick' || state.tool === 'hand') setTool('pencil'); });
+    palEl.appendChild(b);
+  });
+  });
+  function setColor(hex) {
+    hex = hex.toLowerCase();
+    state.color = hex; state.rgb = hexToRgb(hex);
+    $$('input[data-c="1"]').forEach(function (i) { i.value = hex; });
+    $$('.sw').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.c === hex ? 'true' : 'false'); });
+  }
+  function setColor2(hex) {
+    hex = hex.toLowerCase();
+    state.color2 = hex; state.rgb2 = hexToRgb(hex);
+    $$('input[data-c="2"]').forEach(function (i) { i.value = hex; });
+  }
+  $$('input[data-c]').forEach(function (inp) {
+    var which = inp.dataset.c, isHex = inp.type === 'text';
+    inp.addEventListener('input', function (e) {
+      var v = e.target.value.trim();
+      if (isHex) {
+        if (v.charAt(0) !== '#') v = '#' + v;
+        if (!/^#[0-9a-fA-F]{6}$/.test(v)) return;
+      }
+      if (which === '1') setColor(v); else setColor2(v);
+    });
+  });
+
+  /* градиент: протяните по одной грани, цвет 1 в начале, цвет 2 в конце */
+  function gradStart(t) {
+    var r = regionAt(t[0], t[1]);
+    if (!r) { toast('Градиент рисуется внутри одной грани модели.'); return false; }
+    pushUndo();
+    grad = { reg: r, s: t, snap: new Uint8ClampedArray(data) };
+    gradApply(t);
+    return true;
+  }
+  function gradApply(e) {
+    var g = grad, r = g.reg, s = g.s, c1 = state.rgb, c2 = state.rgb2;
+    var dx = e[0] - s[0], dy = e[1] - s[1], L = dx * dx + dy * dy;
+    data.set(g.snap);
+    for (var y = r.y; y < r.y + r.h; y++) for (var x = r.x; x < r.x + r.w; x++) {
+      var t = L ? ((x - s[0]) * dx + (y - s[1]) * dy) / L : 0;
+      t = Math.max(0, Math.min(1, t));
+      var k = (y * N + x) * 4;
+      data[k] = Math.round(c1[0] + (c2[0] - c1[0]) * t);
+      data[k + 1] = Math.round(c1[1] + (c2[1] - c1[1]) * t);
+      data[k + 2] = Math.round(c1[2] + (c2[2] - c1[2]) * t);
+      data[k + 3] = 255;
+    }
+    render();
+  }
+
+  function setTool(t) {
+    if (t === 'gradient' && state.tool !== 'gradient') toast('Градиент: протяните по одной грани. Цвет 1 в начале, цвет 2 в конце.');
+    state.tool = t; board.dataset.tool = t;
+    $$('[data-tool]').forEach(function (b) { if (b.classList.contains('btn')) b.setAttribute('aria-pressed', b.dataset.tool === t ? 'true' : 'false'); });
+  }
+  $$('.tools [data-tool]').forEach(function (b) { b.addEventListener('click', function () { setTool(b.dataset.tool); }); });
+  $$('[data-size]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      state.size = +b.dataset.size;
+      $$('[data-size]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+    });
+  });
+  $$('[data-zoom]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      board.style.setProperty('--zoom', b.dataset.zoom);
+      $$('[data-zoom]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      if (+b.dataset.zoom > 1) toast('Двигайте холст инструментом «Рука».');
+    });
+  });
+  $('#undoBtn').addEventListener('click', undo);
+  $('#redoBtn').addEventListener('click', redo);
+  $('#gridChk').addEventListener('change', function (e) { board.dataset.grid = e.target.checked ? 'on' : 'off'; });
+  $('#guideChk').addEventListener('change', drawGuides);
+
+  document.addEventListener('keydown', function (e) {
+    var tg = e.target && e.target.tagName;
+    if (tg === 'INPUT' || tg === 'SELECT' || tg === 'TEXTAREA') return;
+    var key = e.key.toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && key === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+    if ((e.ctrlKey || e.metaKey) && key === 'y') { e.preventDefault(); redo(); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var map = { b: 'pencil', e: 'eraser', g: 'fill', d: 'gradient', i: 'pick', и: 'pick', в: 'pencil', у: 'eraser', п: 'fill' };
+    if (map[key]) setTool(map[key]);
+  });
+
+  /* ---------- скин по умолчанию и загрузка ---------- */
+  function rect(x, y, w, h, hex) {
+    var c = hexToRgb(hex);
+    for (var j = y; j < y + h; j++) for (var i = x; i < x + w; i++) {
+      var k = (j * N + i) * 4; data[k] = c[0]; data[k + 1] = c[1]; data[k + 2] = c[2]; data[k + 3] = 255;
+    }
+  }
+  function paintDefault(pal) {
+    pal = pal || {};
+    data.fill(0);
+    var skinC = pal.skin || '#c68863', hair = pal.hair || '#3b2314', shirt = pal.shirt || '#1fa6a0', pants = pal.pants || '#3a43a8', shoe = pal.shoe || '#4a4a52';
+    var all = function (f, c) { Object.keys(f).forEach(function (k) { rect(f[k][0], f[k][1], f[k][2], f[k][3], c); }); };
+    var head = faces(0, 0, 8, 8, 8);
+    all(head, skinC);
+    rect(head.top[0], head.top[1], 8, 8, hair); rect(head.back[0], head.back[1], 8, 8, hair);
+    rect(head.front[0], head.front[1], 8, 2, hair);
+    rect(head.right[0], head.right[1], 8, 3, hair); rect(head.left[0], head.left[1], 8, 3, hair);
+    rect(9, 12, 1, 1, '#ffffff'); rect(10, 12, 1, 1, '#3b4bd6'); rect(13, 12, 1, 1, '#3b4bd6'); rect(14, 12, 1, 1, '#ffffff');
+    rect(11, 14, 2, 1, '#8a4b38');
+    all(faces(16, 16, 8, 12, 4), shirt);
+    [[40, 16], [32, 48]].forEach(function (uv) {
+      var a = faces(uv[0], uv[1], 4, 12, 4);
+      all(a, skinC); rect(a.top[0], a.top[1], a.top[2], a.top[3], shirt);
+      ['right', 'front', 'left', 'back'].forEach(function (k) { rect(a[k][0], a[k][1], a[k][2], 4, shirt); });
+    });
+    [[0, 16], [16, 48]].forEach(function (uv) {
+      var l = faces(uv[0], uv[1], 4, 12, 4);
+      all(l, pants); rect(l.bottom[0], l.bottom[1], l.bottom[2], l.bottom[3], shoe);
+      ['right', 'front', 'left', 'back'].forEach(function (k) { rect(l[k][0], l[k][1] + 10, l[k][2], 2, shoe); });
+    });
+  }
+
+  function copyFace(sf, df, flip) {
+    for (var y = 0; y < sf[3]; y++) for (var x = 0; x < sf[2]; x++) {
+      var sx = flip ? sf[0] + sf[2] - 1 - x : sf[0] + x;
+      var s = ((sf[1] + y) * N + sx) * 4, d = ((df[1] + y) * N + df[0] + x) * 4;
+      data[d] = data[s]; data[d + 1] = data[s + 1]; data[d + 2] = data[s + 2]; data[d + 3] = data[s + 3];
+    }
+  }
+  function mirrorBox(su, sv, du, dv) {
+    var s = faces(su, sv, 4, 12, 4), d = faces(du, dv, 4, 12, 4);
+    copyFace(s.top, d.top, true); copyFace(s.bottom, d.bottom, true);
+    copyFace(s.front, d.front, true); copyFace(s.back, d.back, true);
+    copyFace(s.right, d.left, true); copyFace(s.left, d.right, true);
+  }
+  function loadImage(im, quiet) {
+    var w = im.naturalWidth, h = im.naturalHeight;
+    if (w !== 64 || (h !== 64 && h !== 32)) { toast('Нужен PNG 64×64 или 64×32, а у файла ' + w + '×' + h + '.'); return false; }
+    var c = document.createElement('canvas'); c.width = 64; c.height = 64;
+    var cx = c.getContext('2d'); cx.drawImage(im, 0, 0);
+    if (!quiet) pushUndo();
+    data.set(cx.getImageData(0, 0, 64, 64).data);
+    if (h === 32) { mirrorBox(0, 16, 16, 48); mirrorBox(40, 16, 32, 48); }
+    render();
+    return true;
+  }
+
+  $('#openInput').addEventListener('change', function (e) {
+    var f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    var fr = new FileReader();
+    fr.onload = function () {
+      var im = new Image();
+      im.onload = function () { if (loadImage(im, false)) toast('Скин открыт.'); };
+      im.onerror = function () { toast('Не удалось прочитать файл. Нужен PNG.'); };
+      im.src = fr.result;
+    };
+    fr.onerror = function () { toast('Не удалось прочитать файл.'); };
+    fr.readAsDataURL(f);
+  });
+
+  function armed(btn, text, fn) {
+    var orig = btn.textContent, t = 0;
+    btn.addEventListener('click', function () {
+      if (btn.classList.contains('armed')) { clearTimeout(t); btn.classList.remove('armed'); btn.textContent = orig; fn(); return; }
+      btn.classList.add('armed'); btn.textContent = text;
+      t = setTimeout(function () { btn.classList.remove('armed'); btn.textContent = orig; }, 3000);
+    });
+  }
+  armed($('#newBtn'), 'Точно заменить?', function () { pushUndo(); paintDefault(); render(); toast('Готов новый скин. Это можно отменить.'); });
+  armed($('#clearBtn'), 'Точно очистить?', function () { pushUndo(); data.fill(0); render(); toast('Холст очищен. Это можно отменить.'); });
+
+  /* ---------- скачивание ---------- */
+  var downloads = null;
+  (async function () {
+    try { downloads = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { downloads = null; }
+  })();
+  $('#dlBtn').addEventListener('click', function () {
+    var name = ($('#nameInput').value || 'skin').replace(/[^\p{L}\p{N}_-]+/gu, '_').replace(/^_+|_+$/g, '') || 'skin';
+    skin.toBlob(function (blob) {
+      if (!blob) { toast('Не удалось собрать PNG.'); return; }
+      var showFallback = function () {
+        $('#fallbackImg').src = skin.toDataURL('image/png');
+        $('#fallback').hidden = false;
+      };
+      if (isNative() && nativePlugin('Filesystem')) { saveNative(blob, name + '.png'); return; }
+      if (!downloads) { showFallback(); return; }
+      downloads.save({ filename: name + '.png', data: blob }).then(function () {
+        toast('Файл ' + name + '.png сохранён.');
+      }, function (err) {
+        if (err && err.code === 'declined') { toast('Сохранение отменено.'); return; }
+        showFallback();
+      });
+    }, 'image/png');
+  });
+
+  /* ---------- 3D-модель на CSS ---------- */
+  function z(n) { return 'calc(var(--s) * ' + n + ')'; }
+  function faceEl(region, dw, dh, W, H, tf, bright) {
+    var kx = dw / region[2], ky = dh / region[3];
+    var e = document.createElement('div');
+    e.className = 'face';
+    e.dataset.r = region.join(',');
+    e.style.cssText = 'left:' + z((W - dw) / 2) + ';top:' + z((H - dh) / 2) + ';width:' + z(dw) + ';height:' + z(dh) +
+      ';background-size:' + z(N * kx) + ' ' + z(N * ky) +
+      ';background-position:' + z(-region[0] * kx) + ' ' + z(-region[1] * ky) +
+      ';transform:' + tf + ';filter:brightness(' + bright + ')';
+    return e;
+  }
+  function makeBox(p, uv, inf) {
+    var f = faces(uv[0], uv[1], p.w, p.h, p.d);
+    var W = p.w + inf, H = p.h + inf, D = p.d + inf;
+    var box = document.createElement('div');
+    box.className = 'box';
+    box.style.cssText = 'left:' + z(-inf / 2) + ';top:' + z(-inf / 2) + ';width:' + z(W) + ';height:' + z(H);
+    box.appendChild(faceEl(f.front, W, H, W, H, 'translateZ(' + z(D / 2) + ')', 1));
+    box.appendChild(faceEl(f.back, W, H, W, H, 'rotateY(180deg) translateZ(' + z(D / 2) + ')', 0.8));
+    box.appendChild(faceEl(f.right, D, H, W, H, 'rotateY(-90deg) translateZ(' + z(W / 2) + ')', 0.88));
+    box.appendChild(faceEl(f.left, D, H, W, H, 'rotateY(90deg) translateZ(' + z(W / 2) + ')', 0.88));
+    box.appendChild(faceEl(f.top, W, D, W, H, 'rotateX(90deg) translateZ(' + z(H / 2) + ')', 1.08));
+    box.appendChild(faceEl(f.bottom, W, D, W, H, 'rotateX(-90deg) translateZ(' + z(H / 2) + ')', 0.6));
+    return box;
+  }
+  function buildModel() {
+    model.textContent = '';
+    partsFor(state.slim).forEach(function (p) {
+      var wrap = document.createElement('div');
+      wrap.className = 'part' + (p.limb ? ' limb-' + p.limb : '');
+      wrap.style.cssText = 'left:' + z(p.cx - p.w / 2) + ';top:' + z(p.cy - 16 - p.h / 2) + ';width:' + z(p.w) + ';height:' + z(p.h) + (p.limb ? ';transform-origin:50% 0' : '');
+      wrap.appendChild(makeBox(p, p.b, 0));
+      var ov = makeBox(p, p.o, p.inf);
+      ov.classList.add('overlay');
+      wrap.appendChild(ov);
+      model.appendChild(wrap);
+    });
+    updateTexture();
+  }
+  function applyRotation() { model.style.transform = 'rotateX(' + state.rx + 'deg) rotateY(' + state.ry + 'deg)'; }
+
+  var dragging = null, mpaint = null;
+  function faceTexel(e) {
+    var f = e.target && e.target.classList && e.target.classList.contains('face') ? e.target : null;
+    if (!f || !f.offsetWidth || !f.offsetHeight) return null;
+    var r = f.dataset.r.split(',').map(Number);
+    var fx = Math.max(0, Math.min(0.999, e.offsetX / f.offsetWidth));
+    var fy = Math.max(0, Math.min(0.999, e.offsetY / f.offsetHeight));
+    return [r[0] + Math.floor(fx * r[2]), r[1] + Math.floor(fy * r[3])];
+  }
+  function paintAt(t) {
+    if (state.tool === 'fill') { if (floodFill(t[0], t[1])) render(); return; }
+    if (state.tool === 'pick') { pickAt(t[0], t[1]); return; }
+    var l = mpaint && mpaint.last;
+    if (l && regionAt(l[0], l[1]) === regionAt(t[0], t[1])) line(l[0], l[1], t[0], t[1]); else stamp(t[0], t[1]);
+    render();
+  }
+  stage.addEventListener('pointerdown', function (e) {
+    var t = state.mode === 'draw' && state.tool !== 'hand' ? faceTexel(e) : null;
+    if (t) {
+      if (e.target.hasPointerCapture && e.target.hasPointerCapture(e.pointerId)) e.target.releasePointerCapture(e.pointerId);
+      if (state.tool === 'gradient') { if (gradStart(t)) mpaint = { grad: true }; return; }
+      if (state.tool !== 'pick') pushUndo();
+      mpaint = { last: null };
+      paintAt(t); mpaint.last = t;
+      if (state.tool === 'fill' || state.tool === 'pick') mpaint = null;
+      return;
+    }
+    dragging = { x: e.clientX, y: e.clientY, rx: state.rx, ry: state.ry };
+    stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener('pointermove', function (e) {
+    if (mpaint) {
+      var t = faceTexel(e);
+      if (mpaint.grad) { if (t && grad && regionAt(t[0], t[1]) === grad.reg) gradApply(t); return; }
+      if (t) { paintAt(t); mpaint.last = t; }
+      return;
+    }
+    if (!dragging) return;
+    state.ry = dragging.ry + (e.clientX - dragging.x) * 0.6;
+    state.rx = Math.max(-70, Math.min(70, dragging.rx - (e.clientY - dragging.y) * 0.5));
+    applyRotation();
+  });
+  function endDrag() { dragging = null; mpaint = null; grad = null; }
+  $$('[data-mode]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      state.mode = b.dataset.mode; stage.dataset.mode = state.mode;
+      $$('[data-mode]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+    });
+  });
+  function setTarget(v) {
+    model.dataset.target = v;
+    $$('[data-target]').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.target === v ? 'true' : 'false'); });
+  }
+  $$('[data-target]').forEach(function (b) { b.addEventListener('click', function () { setTarget(b.dataset.target); }); });
+  stage.addEventListener('pointerup', endDrag);
+  stage.addEventListener('pointercancel', endDrag);
+
+  (function spinLoop() {
+    if (state.spin && !dragging) { state.ry += 0.7; applyRotation(); }
+    requestAnimationFrame(spinLoop);
+  })();
+
+  $('#layerChk').addEventListener('change', function (e) {
+    model.dataset.layer2 = e.target.checked ? 'on' : 'off';
+    if (!e.target.checked) setTarget('base');
+  });
+  $('#walkChk').addEventListener('change', function (e) { model.dataset.walk = e.target.checked ? 'on' : 'off'; });
+  $('#spinChk').addEventListener('change', function (e) { state.spin = e.target.checked; });
+  $('#resetView').addEventListener('click', function () { state.rx = -12; state.ry = -32; applyRotation(); });
+  $$('[data-model]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      state.slim = b.dataset.model === 'alex';
+      $$('[data-model]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      buildRegions(); drawGuides(); buildModel();
+    });
+  });
+
+  /* ---------- версия: компьютер или телефон ---------- */
+  function setView(v) {
+    state.view = v; app.dataset.view = v;
+    $$('[data-v]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === v ? 'true' : 'false'); });
+    lsSet('mcskin:view', v);
+  }
+  function setTab(t) {
+    state.tab = t; app.dataset.tab = t;
+    $$('.tabs [data-tab]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.tab === t ? 'true' : 'false'); });
+  }
+  $$('[data-v]').forEach(function (b) { b.addEventListener('click', function () { setView(b.dataset.v); }); });
+  $$('.tabs [data-tab]').forEach(function (b) { b.addEventListener('click', function () { setTab(b.dataset.tab); }); });
+
+  /* ---------- приложение на телефоне (Capacitor) ---------- */
+  function isNative() {
+    return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+  }
+  function nativePlugin(name) {
+    return window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins[name] : null;
+  }
+  // Сохранение PNG в папку «Документы» приложения на телефоне
+  function saveNative(blob, filename) {
+    var fr = new FileReader();
+    fr.onload = function () {
+      var b64 = String(fr.result).split(',')[1];
+      nativePlugin('Filesystem').writeFile({ path: filename, data: b64, directory: 'DOCUMENTS', recursive: true })
+        .then(function () { toast('Сохранено в «Документы»: ' + filename); })
+        .catch(function () { toast('Не удалось сохранить файл.'); });
+    };
+    fr.readAsDataURL(blob);
+  }
+
+  /* ---------- галерея: встроенные и свои скины ---------- */
+  var PRESETS = [
+    { name: 'Стандартный', pal: {} },
+    { name: 'Лесной', pal: { shirt: '#2f7d24', pants: '#1f3d1a', shoe: '#2a2a2a' } },
+    { name: 'Ночной', pal: { skin: '#8d5524', hair: '#111111', shirt: '#2c2c3a', pants: '#1a1a22', shoe: '#000000' } },
+    { name: 'Пиратский', pal: { hair: '#d4a017', shirt: '#7a1f1f', pants: '#3d2b1f' } },
+    { name: 'Снежный', pal: { skin: '#f1c27d', hair: '#e8e8e8', shirt: '#dfefff', pants: '#8fb7d9', shoe: '#5c6f82' } },
+    { name: 'Лавандовый', pal: { skin: '#e0ac85', hair: '#6a3fa0', shirt: '#b04fb8', pants: '#4b2a70', shoe: '#222222' } }
+  ];
+  function captureSkin(pal) {
+    var keep = new Uint8ClampedArray(data);
+    paintDefault(pal);
+    var c = document.createElement('canvas'); c.width = N; c.height = N;
+    c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(data), N, N), 0, 0);
+    var url = c.toDataURL('image/png');
+    data.set(keep);
+    return url;
+  }
+  function galGet() { try { return JSON.parse(lsGet('mcskin:gallery') || '[]'); } catch (e) { return []; } }
+  function galSet(list) { lsSet('mcskin:gallery', JSON.stringify(list)); }
+  function loadDataUrl(url, quiet, okMsg) {
+    var im = new Image();
+    im.onload = function () { if (loadImage(im, quiet) && okMsg) toast(okMsg); };
+    im.onerror = function () { toast('Не удалось открыть скин.'); };
+    im.src = url;
+  }
+  function thumbItem(url, name, onPick, onDel) {
+    var b = document.createElement('div');
+    b.className = 'gal-item';
+    var pick = document.createElement('button');
+    pick.type = 'button'; pick.className = 'gal-pick'; pick.title = name;
+    var im = document.createElement('img'); im.src = url; im.alt = name;
+    pick.appendChild(im);
+    pick.addEventListener('click', onPick);
+    var label = document.createElement('span'); label.textContent = name;
+    b.appendChild(pick); b.appendChild(label);
+    if (onDel) {
+      var del = document.createElement('button');
+      del.type = 'button'; del.className = 'gal-del'; del.title = 'Удалить'; del.textContent = '×';
+      del.addEventListener('click', function (e) { e.stopPropagation(); onDel(); });
+      b.appendChild(del);
+    }
+    return b;
+  }
+  function renderGallery() {
+    var pres = $('#galPresets'), mine = $('#galSaved');
+    pres.textContent = ''; mine.textContent = '';
+    PRESETS.forEach(function (p) {
+      pres.appendChild(thumbItem(captureSkin(p.pal), p.name, function () {
+        pushUndo(); paintDefault(p.pal); render(); toast('Скин «' + p.name + '» выбран.');
+      }, null));
+    });
+    var list = galGet();
+    list.forEach(function (it, i) {
+      mine.appendChild(thumbItem(it.url, it.name, function () {
+        loadDataUrl(it.url, false, 'Скин «' + it.name + '» открыт.');
+      }, function () {
+        list.splice(i, 1); galSet(list); renderGallery(); toast('Скин удалён из галереи.');
+      }));
+    });
+    $('#galEmpty').hidden = list.length > 0;
+  }
+  $('#galSaveBtn').addEventListener('click', function () {
+    var list = galGet();
+    if (list.length >= 30) { toast('В галерее уже 30 скинов. Удалите лишние.'); return; }
+    var name = ($('#nameInput').value || '').trim().slice(0, 30) || 'Мой скин';
+    list.unshift({ name: name, url: skin.toDataURL('image/png') });
+    galSet(list); renderGallery(); toast('Скин добавлен в галерею.');
+  });
+
+  /* ---------- напоминания рисовать ---------- */
+  var REM_KEY = 'mcskin:remind', REM_DEFAULT_TEXT = 'Время порисовать скин!';
+  function remGet() { try { return JSON.parse(lsGet(REM_KEY) || '{}'); } catch (e) { return {}; } }
+  function remSet(v) { lsSet(REM_KEY, JSON.stringify(v)); }
+  function remStatus(msg) { $('#remStatus').textContent = msg; }
+  function remLoadUi() {
+    var c = remGet();
+    $('#remOn').checked = !!c.on;
+    $('#remTime').value = c.time || '19:00';
+    $('#remText').value = c.text || REM_DEFAULT_TEXT;
+  }
+  function remSaveUi() {
+    var prev = remGet();
+    remSet({
+      on: $('#remOn').checked,
+      time: $('#remTime').value || '19:00',
+      text: ($('#remText').value || '').trim() || REM_DEFAULT_TEXT,
+      lastShown: prev.lastShown || ''
+    });
+  }
+  // Запрашивает разрешение и возвращает true, если уведомления разрешены
+  function ensureNotifyPermission() {
+    if (isNative()) {
+      var LN = nativePlugin('LocalNotifications');
+      if (!LN) return Promise.resolve(false);
+      return LN.requestPermissions().then(function (r) { return r.display === 'granted'; });
+    }
+    if (!('Notification' in window)) return Promise.resolve(false);
+    if (Notification.permission === 'granted') return Promise.resolve(true);
+    if (Notification.permission === 'denied') return Promise.resolve(false);
+    return Notification.requestPermission().then(function (p) { return p === 'granted'; });
+  }
+  function ensureChannel(LN) {
+    return LN.createChannel({ id: 'reminders', name: 'Напоминания', importance: 4, visibility: 1 }).catch(function () {});
+  }
+  // Ежедневное напоминание: на телефоне — системное расписание, в браузере — проверка по таймеру
+  function applyReminder(showMsg) {
+    var cfg = remGet();
+    var LN = nativePlugin('LocalNotifications');
+    if (isNative() && LN) {
+      if (!cfg.on) { LN.cancel({ notifications: [{ id: 1 }] }).catch(function () {}); remStatus(''); return; }
+      ensureNotifyPermission().then(function (ok) {
+        if (!ok) { remStatus('Разрешите уведомления в настройках телефона.'); return; }
+        var hm = (cfg.time || '19:00').split(':');
+        return ensureChannel(LN).then(function () {
+          return LN.schedule({ notifications: [{
+            id: 1, channelId: 'reminders', title: 'Skin Studio', body: cfg.text || REM_DEFAULT_TEXT,
+            schedule: { on: { hour: +hm[0], minute: +hm[1] }, repeats: true, allowWhileIdle: true }
+          }] });
+        }).then(function () {
+          if (showMsg) remStatus('Напоминание включено: каждый день в ' + cfg.time + '.');
+        });
+      }).catch(function () { remStatus('Не удалось включить напоминание.'); });
+      return;
+    }
+    if (!cfg.on) { remStatus(''); return; }
+    ensureNotifyPermission().then(function (ok) {
+      if (!ok) { remStatus('Разрешите уведомления в браузере, чтобы получать напоминания.'); return; }
+      if (showMsg) remStatus('Напоминание включено: каждый день в ' + cfg.time + '. В браузере оно работает, пока открыта эта страница.');
+    });
+  }
+  // Проверка для браузера: раз в полминуты
+  function webReminderTick() {
+    var cfg = remGet();
+    if (isNative() || !cfg.on || !('Notification' in window) || Notification.permission !== 'granted') return;
+    var now = new Date();
+    var today = now.getFullYear() + '-' + (now.getMonth() + 1) + '-' + now.getDate();
+    var hm = (cfg.time || '19:00').split(':');
+    var due = now.getHours() * 60 + now.getMinutes() >= (+hm[0]) * 60 + (+hm[1]);
+    if (due && cfg.lastShown !== today) {
+      new Notification('Skin Studio', { body: cfg.text || REM_DEFAULT_TEXT });
+      cfg.lastShown = today;
+      remSet(cfg);
+    }
+  }
+  ['#remOn', '#remTime'].forEach(function (sel) {
+    $(sel).addEventListener('change', function () { remSaveUi(); applyReminder(true); });
+  });
+  $('#remText').addEventListener('change', function () { remSaveUi(); applyReminder(false); });
+  $('#remTest').addEventListener('click', function () {
+    var cfg = remGet(), text = cfg.text || REM_DEFAULT_TEXT;
+    var LN = nativePlugin('LocalNotifications');
+    ensureNotifyPermission().then(function (ok) {
+      if (!ok) { remStatus('Нет разрешения на уведомления.'); return; }
+      if (isNative() && LN) {
+        return ensureChannel(LN).then(function () {
+          return LN.schedule({ notifications: [{ id: 99, channelId: 'reminders', title: 'Skin Studio', body: text, schedule: { at: new Date(Date.now() + 2000) } }] });
+        }).then(function () { remStatus('Тестовое уведомление придёт через пару секунд.'); });
+      }
+      new Notification('Skin Studio', { body: text });
+      remStatus('Тестовое уведомление отправлено.');
+    }).catch(function () { remStatus('Не удалось показать уведомление.'); });
+  });
+
+  /* ---------- запуск ---------- */
+  var storedView = lsGet('mcskin:view');
+  setView(storedView === 'phone' || storedView === 'desktop' ? storedView : (window.innerWidth < 700 ? 'phone' : 'desktop'));
+  setColor(state.color); setColor2(state.color2);
+  buildRegions(); drawGuides(); buildModel(); applyRotation();
+  paintDefault(); render();
+
+  renderGallery();
+  remLoadUi();
+  if (remGet().on && isNative()) applyReminder(false);
+  setInterval(webReminderTick, 30000);
+  webReminderTick();
+
+  var saved = lsGet('mcskin:v1');
+  if (saved) {
+    var im0 = new Image();
+    im0.onload = function () { loadImage(im0, true); };
+    im0.src = saved;
+  }
+})();
+</script>
+
+</body></html>
