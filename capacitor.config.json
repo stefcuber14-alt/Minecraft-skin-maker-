@@ -1,8 +1,0 @@
-{
-  "appId": "com.skinstudio.app",
-  "appName": "Skin Studio",
-  "webDir": "www",
-  "android": {
-    "allowMixedContent": false
-  }
-}
