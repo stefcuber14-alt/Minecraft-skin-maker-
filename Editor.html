@@ -126,9 +126,11 @@ select#shapeSel { flex: 1; }
 .sw { aspect-ratio: 1; min-height: 28px; border: 2px solid var(--line); padding: 0; border-radius: 50%; }
 .sw[aria-pressed="true"] { outline: 3px solid var(--ink); outline-offset: 1px; }
 .parts-block { display: flex; flex-direction: column; gap: 8px; border-top: 2px dashed var(--line); padding-top: 12px; }
-.partgrid { display: grid; grid-template-columns: minmax(0, 1fr) 96px 96px; align-items: center; gap: 2px 8px; }
-.partgrid .label { text-align: center; }
-.partgrid .check { justify-content: center; min-height: 30px; }
+
+.maps { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.map { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+.map canvas { width: 100%; height: auto; aspect-ratio: 1; image-rendering: pixelated; border: 2px solid var(--line); border-radius: 10px; background: var(--chk1); cursor: pointer; touch-action: manipulation; }
+.map figcaption { font-size: 12px; color: var(--muted); }
 
 /* Файлы и галерея */
 .namefield { display: flex; flex-direction: column; gap: 6px; }
@@ -271,7 +273,11 @@ select#shapeSel { flex: 1; }
         </div>
         <div class="parts-block">
           <div class="label" data-i18n="parts.title">Части тела и слои</div>
-          <div class="partgrid" id="partGrid"></div>
+          <div class="maps">
+            <figure class="map"><canvas id="mapBase" width="256" height="256" aria-label="Основной слой"></canvas><figcaption data-i18n="layer.base">Основной</figcaption></figure>
+            <figure class="map"><canvas id="mapOuter" width="256" height="256" aria-label="Внешний слой"></canvas><figcaption data-i18n="layer.outer">Внешний</figcaption></figure>
+          </div>
+          <p class="hint" data-i18n="parts.tip">Нажмите на часть, чтобы скрыть или показать её.</p>
           <div class="row"><button type="button" class="btn" id="showAll"><span data-i18n="parts.all">Показать все</span></button></div>
         </div>
         <p class="hint" data-i18n="hint.draw">Рисуйте на модели выбранным инструментом.</p>
@@ -619,6 +625,9 @@ select#shapeSel { flex: 1; }
     'toast.galCleared': 'Gallery cleared.', 'toast.resetAll': 'Settings reset.',
     'set.bug': 'Found a bug?', 'set.bug.hint': 'Describe what happened on the project page on GitHub.', 'set.bug.btn': 'Report a bug'
   });
+  Object.assign(T.ru, { 'parts.tip': 'Нажмите на часть, чтобы скрыть или показать её.' });
+  Object.assign(T.de, { 'parts.tip': 'Tippen Sie auf einen Teil, um ihn ein- oder auszublenden.' });
+  Object.assign(T.en, { 'parts.tip': 'Tap a part to hide or show it.' });
   var LANG = 'ru';
   function t(key, vars) {
     var s = (T[LANG] && T[LANG][key]) || T.ru[key] || key;
@@ -745,6 +754,7 @@ select#shapeSel { flex: 1; }
       modelQueued = true;
       requestAnimationFrame(function () { modelQueued = false; updateTexture(); });
     }
+    if (typeof queueMaps === 'function') queueMaps();
     clearTimeout(saveTimer);
     saveTimer = setTimeout(function () { lsSet('mcskin:v1', skin.toDataURL('image/png')); }, 600);
   }
@@ -1117,24 +1127,72 @@ select#shapeSel { flex: 1; }
       if (wrap.children[1]) wrap.children[1].style.display = v.over ? '' : 'none';
     });
   }
-  function buildPartGrid() {
-    var g = $('#partGrid');
-    g.textContent = '';
-    ['', t('layer.base'), t('layer.outer')].forEach(function (txt) {
-      var s = document.createElement('span'); s.className = 'label'; s.textContent = txt; g.appendChild(s);
-    });
-    PARTS_UI.forEach(function (id) {
-      var name = partsFor(state.slim).filter(function (p) { return p.id === id; })[0];
-      var nm = document.createElement('span'); nm.textContent = t(name.key); g.appendChild(nm);
-      ['base', 'over'].forEach(function (layer) {
-        var lab = document.createElement('label'); lab.className = 'check';
-        var cb = document.createElement('input');
-        cb.type = 'checkbox'; cb.checked = VIS[id][layer];
-        cb.addEventListener('change', function () { VIS[id][layer] = cb.checked; saveVis(); applyVis(); });
-        lab.appendChild(cb); g.appendChild(lab);
-      });
+  /* карты частей: два 2D-слоя, нажмите на часть, чтобы скрыть или показать */
+  var MAP_S = 4, mapHover = null, mapsQueued = false;
+  function regionRect(p, layer) {
+    var uv = layer === 'base' ? p.b : p.o;
+    return { x: uv[0], y: uv[1], w: 2 * p.d + 2 * p.w, h: p.d + p.h };
+  }
+  function drawMap(sel, layer) {
+    var c = $(sel), x = c.getContext('2d'), size = 64 * MAP_S;
+    x.imageSmoothingEnabled = false;
+    x.clearRect(0, 0, size, size);
+    x.drawImage(skin, 0, 0, 64, 64, 0, 0, size, size);
+    partsFor(state.slim).forEach(function (p) {
+      var r = regionRect(p, layer);
+      var on = VIS[p.id][layer === 'base' ? 'base' : 'over'];
+      var rx = r.x * MAP_S, ry = r.y * MAP_S, rw = r.w * MAP_S, rh = r.h * MAP_S;
+      var hot = mapHover === p.id + layer;
+      if (!on) {
+        x.fillStyle = 'rgba(10,14,12,0.72)';
+        x.fillRect(rx, ry, rw, rh);
+        x.strokeStyle = 'rgba(255,255,255,0.22)'; x.lineWidth = 1;
+        for (var k = -rh; k < rw; k += 8) { x.beginPath(); x.moveTo(rx + k, ry + rh); x.lineTo(rx + k + rh, ry); x.stroke(); }
+      }
+      x.lineWidth = hot ? 4 : 2;
+      x.strokeStyle = hot ? '#ffffff' : p.color;
+      x.strokeRect(rx + 1, ry + 1, rw - 2, rh - 2);
+      x.font = '600 11px "Golos Text", sans-serif';
+      x.textBaseline = 'top';
+      var label = t(p.key), tw = x.measureText(label).width + 10;
+      x.fillStyle = on ? 'rgba(0,0,0,0.6)' : 'rgba(150,30,30,0.9)';
+      x.fillRect(rx + 2, ry + 2, tw, 17);
+      x.fillStyle = '#ffffff';
+      x.fillText(label, rx + 7, ry + 5);
     });
   }
+  function drawMaps() { drawMap('#mapBase', 'base'); drawMap('#mapOuter', 'over'); }
+  function queueMaps() {
+    if (mapsQueued) return;
+    mapsQueued = true;
+    requestAnimationFrame(function () { mapsQueued = false; drawMaps(); });
+  }
+  function mapHit(e, c) {
+    var r = c.getBoundingClientRect();
+    var tx = Math.floor((e.clientX - r.left) / r.width * 64), ty = Math.floor((e.clientY - r.top) / r.height * 64);
+    var layer = c.id === 'mapBase' ? 'base' : 'over', hit = null;
+    partsFor(state.slim).forEach(function (p) {
+      var q = regionRect(p, layer);
+      if (tx >= q.x && tx < q.x + q.w && ty >= q.y && ty < q.y + q.h) hit = p.id;
+    });
+    return hit ? { id: hit, layer: layer } : null;
+  }
+  ['#mapBase', '#mapOuter'].forEach(function (sel) {
+    var c = $(sel);
+    c.addEventListener('click', function (e) {
+      var h = mapHit(e, c);
+      if (!h) return;
+      var key = h.layer === 'base' ? 'base' : 'over';
+      VIS[h.id][key] = !VIS[h.id][key];
+      saveVis(); applyVis(); drawMaps();
+    });
+    c.addEventListener('pointermove', function (e) {
+      var h = mapHit(e, c), k = h ? h.id + h.layer : null;
+      if (k !== mapHover) { mapHover = k; drawMaps(); }
+    });
+    c.addEventListener('pointerleave', function () { if (mapHover) { mapHover = null; drawMaps(); } });
+  });
+  function buildPartGrid() { drawMaps(); }
   $('#showAll').addEventListener('click', function () {
     PARTS_UI.forEach(function (id) { VIS[id] = { base: true, over: true }; });
     saveVis(); buildPartGrid(); applyVis();
